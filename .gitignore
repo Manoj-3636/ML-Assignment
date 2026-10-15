@@ -1,14 +1,22 @@
-# Virtual environment
+# Virtual environment (created by uv)
 .venv/
 venv/
+env/
 
-# Python cache
+# Python cache & tool caches
 __pycache__/
 *.py[cod]
 .mypy_cache/
 .ruff_cache/
+.pytest_cache/
 
-# IDE & OS files
+# Local dataset files (stay local in root folder, do not push to Git)
+Frogs_MFCCs.csv
+*.csv
+*.zip
+Readme.txt
+
+# IDE & OS settings
 .vscode/
 .idea/
 .DS_Store
