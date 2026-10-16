@@ -16,6 +16,10 @@ Frogs_MFCCs.csv
 *.zip
 Readme.txt
 
+#visualization files
+*.svg
+*.gv
+
 # IDE & OS settings
 .vscode/
 .idea/

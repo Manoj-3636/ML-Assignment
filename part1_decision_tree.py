@@ -1,9 +1,8 @@
 import numpy as np
 import pandas
 import pandas as pd
-import nptyping as npt
-
-from common import TreeNode
+import numpy.typing as npt
+from common import TreeNode,get_species_split
 
 def gini(prob:npt.NDArray):
     return 1 - np.sum(prob ** 2)
@@ -177,7 +176,8 @@ class DecisionTree:
             Returns (None, None, 0.0) if no valid split has positive gain.
         """
         n_samples, n_features = X.shape
-
+        # Note that if max_features is left none then RNG can also be left none
+        # TODO better way to support this
         if self.max_features is None:
             features = np.arange(n_features)
         else:
@@ -293,7 +293,7 @@ class DecisionTree:
 
         return node
 
-    def fit(self, X:pandas.DataFrame, y:pandas.DataFrame, sample_weight=None):
+    def fit(self, X, y, sample_weight=None):
         """
         Fit the decision tree classifier to the training data.
 
@@ -305,8 +305,8 @@ class DecisionTree:
         Returns:
             The fitted DecisionTree instance.
         """
-        X = X.to_numpy()
-        y = y.to_numpy()
+        X = np.asarray(X)
+        y = np.asarray(y)
 
         self.classes_, y_encoded = np.unique(y, return_inverse=True)
         n_classes = len(self.classes_)
@@ -333,7 +333,7 @@ class DecisionTree:
             sample_weight,
         )
 
-    def predict(self, X:pandas.DataFrame):
+    def predict(self, X):
         """
         Predict class labels for the input samples.
 
@@ -343,7 +343,7 @@ class DecisionTree:
         Returns:
             Predicted class labels.
         """
-        X = X.to_numpy()
+        X = np.asarray(X)
 
         def _predict_one(x):
             node = self.root
@@ -359,3 +359,12 @@ class DecisionTree:
         y_encoded = np.array([_predict_one(x) for x in X])
 
         return self.classes_[y_encoded]
+
+if __name__ == "__main__":
+    # Demonstrate that an unlimited tree fully fits the dataset as a sanity check
+    x_train,y_train,x_test,y_test = get_species_split()
+    tree = DecisionTree("gini")
+    tree.fit(x_train,y_train)
+
+    prediction = tree.predict(x_train)
+    print(f"Number of wrong predictions on the training dataset {np.count_nonzero(prediction != y_train)}")

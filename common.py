@@ -70,35 +70,46 @@ def get_species_split():
 
 
 class TreeNode:
-    def __init__(self,label,threshold,leaf=False):
+    def __init__(self, label, threshold=None, leaf=False):
         self.label = label
-        self.children:list[TreeNode] = []
+        self.left = None
+        self.right = None
         self.threshold = threshold
         self.leaf = leaf
 
-
-    def addChild(self,node):
-        self.children.append(node)
-
-    def visualize(self,feature_labels:list[str]):
+    def visualize(self, feature_labels: list[str]):
         g = Digraph(format='svg')
         node_idx = 0
 
         def _constructGraph(root):
-            nonlocal  node_idx
+            nonlocal node_idx
 
             curr_label = str(node_idx)
             node_idx += 1
 
-            display_name = root.label if root.leaf else feature_labels[root.label]
+            display_name = (
+                str(root.label)
+                if root.leaf
+                else feature_labels[root.label]
+            )
 
-            g.node(curr_label,display_name)
+            g.node(curr_label, display_name)
 
-            for child in root.children:
-                g.edge(curr_label, _constructGraph(child),label = str(child.parent_attribute))
+            if root.left is not None:
+                g.edge(
+                    curr_label,
+                    _constructGraph(root.left),
+                    label=f"<= {root.threshold:.4f}",
+                )
+
+            if root.right is not None:
+                g.edge(
+                    curr_label,
+                    _constructGraph(root.right),
+                    label=f"> {root.threshold:.4f}",
+                )
 
             return curr_label
-
 
         _constructGraph(self)
         return g
