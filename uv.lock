@@ -501,6 +501,7 @@ version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "matplotlib" },
+    { name = "nptyping" },
     { name = "numpy" },
     { name = "pandas" },
     { name = "pandas-stubs" },
@@ -516,6 +517,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "matplotlib", specifier = ">=3.11.2" },
+    { name = "nptyping", specifier = ">=2.0.1" },
     { name = "numpy", specifier = ">=2.5.4" },
     { name = "pandas", specifier = ">=3.0.6" },
     { name = "pandas-stubs", specifier = "==3.0.5.260914" },
@@ -589,6 +591,17 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/a2/6e/371856a3fb9d31ca8dac321cda606860fa4548858c0cc45d9d1d4ca2628b/mypy_extensions-1.1.0.tar.gz", hash = "sha256:52e68efc3284861e772bbcd66823fde5ae21fd2fdb51c62a211403730b916558", size = 6343, upload-time = "2025-04-22T14:54:24.164Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/79/7b/2c79738432f5c924bef5071f933bcc9efd0473bac3b4aa584a6f7c1c8df8/mypy_extensions-1.1.0-py3-none-any.whl", hash = "sha256:1be4cccdb0f2482337c4743e60421de3a356cd97508abadd57d47403e94f5505", size = 4963, upload-time = "2025-04-22T14:54:22.983Z" },
+]
+
+[[package]]
+name = "nptyping"
+version = "2.0.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy" },
+]
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/48/03/3f5af42a8858c223f1a4b1d5a773f3a4f7cb9ae9dcbd1ad61bdb8539e633/nptyping-2.0.1-py3-none-any.whl", hash = "sha256:0fc5c4d76c65e12a77e750b9e2701dab6468d00926c8c4f383867bd70598a532", size = 19435, upload-time = "2022-04-28T21:02:07.815Z" },
 ]
 
 [[package]]
