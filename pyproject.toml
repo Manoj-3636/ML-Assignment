@@ -6,6 +6,8 @@ dependencies = [
     "matplotlib>=3.11.2",
     "numpy>=2.5.4",
     "pandas>=3.0.6",
+    "pandas-stubs==3.0.5.260914",
+    "types-pandas==2.0.0",
 ]
 
 [dependency-groups]
