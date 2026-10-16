@@ -1,8 +1,9 @@
 import numpy as np
+import pandas
 import pandas as pd
 import nptyping as npt
 
-from common import DATASET_PATH, _stratified_split, get_species_split
+from common import TreeNode
 
 def gini(prob:npt.NDArray):
     return 1 - np.sum(prob ** 2)
@@ -21,6 +22,10 @@ class DecisionTree:
         rng=None,
     ):
         """Initialize the decision tree classifier."""
+        self.classes_ = None
+        self.root = None
+        self.n_features_in_ = None
+        self.n_classes_ = None
         if criterion not in ("gini", "entropy"):
             raise ValueError("criterion must be 'gini' or 'entropy'.")
 
@@ -39,7 +44,7 @@ class DecisionTree:
         self.max_features = max_features
         self.rng = rng
 
-    def _best_split(self, X, y, feat, sample_weight=None):
+    def _best_feature_split(self, X,y_encoded, feat,n_classes ,sample_weight=None):
         """Find the best split for a single feature.
 
         Args:
@@ -53,14 +58,10 @@ class DecisionTree:
             Returns (None, 0.0) if no valid split has positive gain.
         """
         x = X[:, feat]
-        n_samples = len(y)
+        n_samples = len(y_encoded)
 
         if sample_weight is None:
             sample_weight = np.ones(n_samples, dtype=float)
-
-        classes, y_encoded = np.unique(y, return_inverse=True) #y_encoded has y but the elements are the indexes of classes
-                                                               # so for each y if we go to the index in classes we reconstruct y
-        n_classes = len(classes)
 
         order = np.argsort(x, kind="stable") # gives the indices that sort the array x
         x_sorted = x[order]
@@ -160,3 +161,201 @@ class DecisionTree:
         # the final split point
 
         return threshold, best_gain
+
+    def _best_split(self, X, y_encoded, n_classes, sample_weight=None):
+        """
+        Find the best split for the current dataset.
+
+        Args:
+            X: Feature matrix for the current node.
+            y_encoded: Encoded class labels for the current node.
+            n_classes: Total number of classes in the training data.
+            sample_weight: Optional weight for each sample.
+
+        Returns:
+            A tuple containing the best feature index, threshold, and gain.
+            Returns (None, None, 0.0) if no valid split has positive gain.
+        """
+        n_samples, n_features = X.shape
+
+        if self.max_features is None:
+            features = np.arange(n_features)
+        else:
+            n_features_to_select = min(self.max_features, n_features)
+            features = self.rng.choice(
+                n_features,
+                size=n_features_to_select,
+                replace=False,
+            )
+            features = np.sort(features)
+
+        best_feature = None
+        best_threshold = None
+        best_gain = 0.0
+
+        for feat in features:
+            threshold, gain = self._best_feature_split(
+                X,
+                y_encoded,
+                feat,
+                n_classes,
+                sample_weight,
+            )
+
+            if gain > best_gain:
+                best_feature = feat
+                best_threshold = threshold
+                best_gain = gain
+
+        # this automatically makes sure that when two features are conflicting the one with lower feature id wins
+        return best_feature, best_threshold, best_gain
+
+    def _build_tree(
+            self,
+            X,
+            y_encoded,
+            n_classes,
+            sample_weight,
+            depth=0,
+    ):
+        """
+        Recursively build the decision tree for the current dataset.
+
+        Args:
+            X: Feature matrix for the current node.
+            y_encoded: Encoded class labels for the current node.
+            n_classes: Total number of classes in the training data.
+            sample_weight: Sample weights for the current node.
+            depth: Depth of the current node, with the root at depth 0.
+
+        Returns:
+            The root node of the constructed subtree.
+        """
+        n_samples = len(y_encoded)
+
+        class_weights = np.bincount(
+            y_encoded,
+            weights=sample_weight,
+            minlength=n_classes,
+        )
+
+        majority_class = np.argmax(class_weights)
+
+        # Stop if the node is pure.
+        if np.count_nonzero(class_weights) == 1:
+            return TreeNode(label=majority_class, leaf=True,threshold=-3.14) # specific number to detect bugs down the line
+
+        # Stop if the maximum depth has been reached.
+        if self.max_depth is not None and depth >= self.max_depth:
+            return TreeNode(label=majority_class, leaf=True,threshold=-3.14)
+
+        # Stop if there are too few samples to split.
+        if n_samples < self.min_samples_split:
+            return TreeNode(label=majority_class, leaf=True,threshold=-3.14)
+
+        feature_idx, threshold, gain = self._best_split(
+            X,
+            y_encoded,
+            n_classes,
+            sample_weight,
+        )
+
+        # Stop if no useful split exists.
+        if feature_idx is None or gain <= 0:
+            return TreeNode(label=majority_class, leaf=True,threshold=-3.14)
+
+        left_mask = X[:, feature_idx] <= threshold # get all satisfying indices
+        right_mask = ~left_mask
+
+        # Construct the internal node.
+        node = TreeNode(
+            label=feature_idx,
+            threshold=threshold,
+        )
+
+        # Recursively construct the left subtree.
+        node.left = self._build_tree(
+            X[left_mask],
+            y_encoded[left_mask],
+            n_classes,
+            sample_weight[left_mask],
+            depth + 1,
+        )
+
+        # Recursively construct the right subtree.
+        node.right = self._build_tree(
+            X[right_mask],
+            y_encoded[right_mask],
+            n_classes,
+            sample_weight[right_mask],
+            depth + 1,
+        )
+
+        return node
+
+    def fit(self, X:pandas.DataFrame, y:pandas.DataFrame, sample_weight=None):
+        """
+        Fit the decision tree classifier to the training data.
+
+        Args:
+            X: Feature matrix for the training samples.
+            y: Target class labels.
+            sample_weight: Optional weight for each training sample.
+
+        Returns:
+            The fitted DecisionTree instance.
+        """
+        X = X.to_numpy()
+        y = y.to_numpy()
+
+        self.classes_, y_encoded = np.unique(y, return_inverse=True)
+        n_classes = len(self.classes_)
+        n_samples = len(y)
+
+        if sample_weight is None:
+            sample_weight = np.ones(n_samples, dtype=float)
+        else:
+            sample_weight = np.asarray(sample_weight, dtype=float)
+
+        if len(X) != n_samples or len(sample_weight) != n_samples:
+            raise ValueError("X, y, and sample_weight must have the same number of samples.")
+
+        if np.any(sample_weight < 0) or sample_weight.sum() <= 0:
+            raise ValueError("Sample weights must be non-negative with a positive sum.")
+
+        self.n_classes_ = n_classes
+        self.n_features_in_ = X.shape[1]
+
+        self.root = self._build_tree(
+            X,
+            y_encoded,
+            n_classes,
+            sample_weight,
+        )
+
+    def predict(self, X:pandas.DataFrame):
+        """
+        Predict class labels for the input samples.
+
+        Args:
+            X: Feature matrix for the samples to predict.
+
+        Returns:
+            Predicted class labels.
+        """
+        X = X.to_numpy()
+
+        def _predict_one(x):
+            node = self.root
+
+            while not node.leaf:
+                if x[node.label] <= node.threshold:
+                    node = node.left
+                else:
+                    node = node.right
+
+            return node.label
+
+        y_encoded = np.array([_predict_one(x) for x in X])
+
+        return self.classes_[y_encoded]
