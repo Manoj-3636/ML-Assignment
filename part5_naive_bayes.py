@@ -1,5 +1,8 @@
-import numpy as np
+from typing import Dict
 
+import numpy as np
+import pandas as pd
+from common import DATASET_PATH, _stratified_split, get_species_split
 
 class GaussianNB:
     """Flat Gaussian Naive Bayes classifier implemented from scratch using NumPy."""
@@ -57,6 +60,16 @@ class GaussianNB:
         return self.classes_[best_class_idx]
 
 
+def compute_accuracy(y_true: np.ndarray, y_pred: np.ndarray) -> float:
+    """
+    Compute classification accuracy as a percentage (0.0 to 100.0)
+    :param y_true: 1D array of ground truth labels
+    :param y_pred: 1D array of predicted labels
+    :return: accuracy percentage
+    """
+    return float(np.mean(y_true == y_pred) * 100.0)
+
+
 def run_sanity_check() -> None:
     """
     Run the mandatory sanity check specified in Part 5 of the assignment
@@ -80,5 +93,55 @@ def run_sanity_check() -> None:
     print("Sanity check PASSED!\n")
 
 
+def run_part5() -> None:
+    """
+    Train and evaluate Flat Gaussian Naive Bayes on the Anuran Calls dataset
+    :return: None
+    """
+    
+    x_train, y_train, x_test, y_test = get_species_split()
+    
+    df = pd.read_csv(DATASET_PATH)
+    train_idx, test_idx = _stratified_split(df["Species"].to_numpy())
+    y_family_train = df["Family"].to_numpy()[train_idx]
+    y_family_test = df["Family"].to_numpy()[test_idx]
+    
+    model = GaussianNB(var_smoothing=1e-9)
+    model.fit(x_train, y_train)
+
+    y_train_pred = model.predict(x_train)
+    y_test_pred = model.predict(x_test)
+    
+    train_acc = compute_accuracy(y_train, y_train_pred)
+    test_acc = compute_accuracy(y_test, y_test_pred)
+    
+    species_to_family: Dict[str, str] = dict(zip(y_train, y_family_train))
+    y_family_pred_test = np.array([species_to_family[s] for s in y_test_pred])
+    derived_family_acc = compute_accuracy(y_family_test, y_family_pred_test)
+
+    print("\n=== Part 5: Flat Gaussian Naive Bayes Results ===")
+    print(f"Train Accuracy (Species):         {train_acc:.2f}%")
+    print(f"Test Accuracy (Species):          {test_acc:.2f}%")
+    print(f"Derived Family Accuracy (Test):   {derived_family_acc:.2f}%\n")
+    
+    corr_matrix = np.corrcoef(x_train, rowvar=False)
+    off_diag_mask = ~np.eye(corr_matrix.shape[0], dtype=bool)
+    abs_off_diag = np.abs(corr_matrix[off_diag_mask])
+
+    max_corr = float(np.max(abs_off_diag))
+    mean_corr = float(np.mean(abs_off_diag))
+    high_corr_pairs = int(np.sum(abs_off_diag > 0.5) // 2)
+
+    print("=== Feature Correlation Analysis (22 MFCCs on Training Set) ===")
+    print(f"Correlation Matrix Shape:         {corr_matrix.shape}")
+    print(f"Mean |Correlation| (off-diag):    {mean_corr:.4f}")
+    print(f"Max  |Correlation| (off-diag):    {max_corr:.4f}")
+    print(f"Feature pairs with |r| > 0.5:     {high_corr_pairs} pairs")
+    
+    
+    
+    
+
 if __name__ == "__main__":
     run_sanity_check()
+    run_part5()
