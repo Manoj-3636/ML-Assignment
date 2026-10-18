@@ -1,8 +1,10 @@
+from typing import Dict
+
 import numpy as np
 import pandas
 import pandas as pd
 import numpy.typing as npt
-from common import TreeNode,get_species_split
+from common import TreeNode,get_df_split,compute_accuracy
 
 def gini(prob:npt.NDArray):
     return 1 - np.sum(prob ** 2)
@@ -361,10 +363,63 @@ class DecisionTree:
         return self.classes_[y_encoded]
 
 if __name__ == "__main__":
-    # Demonstrate that an unlimited tree fully fits the dataset as a sanity check
-    x_train,y_train,x_test,y_test = get_species_split()
-    tree = DecisionTree("gini")
-    tree.fit(x_train,y_train)
+    df_train,df_test = get_df_split()
+    x_train = df_train.iloc[:, 0:22].to_numpy()
+    x_test = df_test.iloc[:,0:22].to_numpy()
 
-    prediction = tree.predict(x_train)
-    print(f"Number of wrong predictions on the training dataset {np.count_nonzero(prediction != y_train)}")
+    y_train_species = df_train["Species"]
+    y_train_family = df_train["Family"]
+
+    y_test_species = df_test["Species"]
+    y_test_family = df_test["Family"]
+
+    dt_gini = DecisionTree("gini")
+    dt_gini.fit(x_train,y_train_species)
+
+    train_pred_gini = dt_gini.predict(x_train)
+    test_pred_gini = dt_gini.predict(x_test)
+
+    print(f"Gini Training Accuracy: {compute_accuracy(y_train_species,train_pred_gini)}")
+    print(f"Gini Testing Accuracy: {compute_accuracy(y_test_species,test_pred_gini)}")
+
+    dt_entropy = DecisionTree("entropy")
+    dt_entropy.fit(x_train, y_train_species)
+
+    train_pred_entropy = dt_entropy.predict(x_train)
+    test_pred_entropy = dt_entropy.predict(x_test)
+
+    print(f"Entropy Training Accuracy: {compute_accuracy(y_train_species, train_pred_entropy)}")
+    print(f"Entropy Testing Accuracy: {compute_accuracy(y_test_species, test_pred_entropy)}")
+
+    species_to_family: Dict[str, str] = dict(zip(y_train_species, y_train_family))
+
+    train_pred_family_gini = np.array([species_to_family[species] for species in train_pred_gini])
+    test_pred_family_gini = np.array([species_to_family[species] for species in test_pred_gini])
+
+    train_pred_family_entropy = np.array([species_to_family[species] for species in train_pred_entropy])
+    test_pred_family_entropy = np.array([species_to_family[species] for species in test_pred_entropy])
+
+    print(f"Gini Training Derived Family Accuracy: {compute_accuracy(y_train_family, train_pred_family_gini)}")
+    print(f"Gini Testing Derived Family Accuracy: {compute_accuracy(y_test_family, test_pred_family_gini)}")
+
+    print(f"Entropy Training Derived Family Accuracy: {compute_accuracy(y_train_family, train_pred_family_entropy)}")
+    print(f"Entropy Testing Derived Family Accuracy: {compute_accuracy(y_test_family, test_pred_family_entropy)}")
+    print("=" * 40)
+    print("Accuracies for various max depths")
+    max_depths = [1, 2, 3, 5, 8, 12, None]
+
+    for criterion in ["gini", "entropy"]:
+        print(f"\n{criterion.capitalize()} Decision Tree")
+
+        for max_depth in max_depths:
+            tree = DecisionTree(criterion, max_depth=max_depth)
+            tree.fit(x_train, y_train_species)
+
+            train_pred = tree.predict(x_train)
+            test_pred = tree.predict(x_test)
+
+            print(
+                f"max_depth={max_depth} | "
+                f"Training Accuracy: {compute_accuracy(y_train_species, train_pred)} | "
+                f"Testing Accuracy: {compute_accuracy(y_test_species, test_pred)}"
+            )
