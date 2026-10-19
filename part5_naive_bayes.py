@@ -2,7 +2,8 @@ from typing import Dict
 
 import numpy as np
 import pandas as pd
-from common import DATASET_PATH, _stratified_split, get_species_split
+from common import DATASET_PATH, _stratified_split, compute_accuracy, get_df_split
+
 
 class GaussianNB:
     """Flat Gaussian Naive Bayes classifier implemented from scratch using NumPy."""
@@ -60,15 +61,9 @@ class GaussianNB:
         return self.classes_[best_class_idx]
 
 
-def compute_accuracy(y_true: np.ndarray, y_pred: np.ndarray) -> float:
-    """
-    Compute classification accuracy as a percentage (0.0 to 100.0)
-    :param y_true: 1D array of ground truth labels
-    :param y_pred: 1D array of predicted labels
-    :return: accuracy percentage
-    """
-    return float(np.mean(y_true == y_pred) * 100.0)
 
+
+# TODO move sanity checks to test folder (is this ok for submission tho?)
 
 def run_sanity_check() -> None:
     """
@@ -98,24 +93,24 @@ def run_part5() -> None:
     Train and evaluate Flat Gaussian Naive Bayes on the Anuran Calls dataset
     :return: None
     """
-    
-    x_train, y_train, x_test, y_test = get_species_split()
-    
-    df = pd.read_csv(DATASET_PATH)
-    train_idx, test_idx = _stratified_split(df["Species"].to_numpy())
-    y_family_train = df["Family"].to_numpy()[train_idx]
-    y_family_test = df["Family"].to_numpy()[test_idx]
+    train_df,test_df = get_df_split()
+    x_train = train_df.iloc[:, 0:22].to_numpy()
+    x_test = test_df.iloc[:, 0:22].to_numpy()
+    y_species_train = train_df["Species"].to_numpy()
+    y_species_test = test_df["Species"].to_numpy()
+    y_family_train = train_df["Family"].to_numpy()
+    y_family_test = test_df["Family"].to_numpy()
     
     model = GaussianNB(var_smoothing=1e-9)
-    model.fit(x_train, y_train)
+    model.fit(x_train, y_species_train)
 
     y_train_pred = model.predict(x_train)
     y_test_pred = model.predict(x_test)
     
-    train_acc = compute_accuracy(y_train, y_train_pred)
-    test_acc = compute_accuracy(y_test, y_test_pred)
+    train_acc = compute_accuracy(y_species_train, y_train_pred)
+    test_acc = compute_accuracy(y_species_test, y_test_pred)
     
-    species_to_family: Dict[str, str] = dict(zip(y_train, y_family_train))
+    species_to_family: Dict[str, str] = dict(zip(y_species_train, y_family_train))
     y_family_pred_test = np.array([species_to_family[s] for s in y_test_pred])
     derived_family_acc = compute_accuracy(y_family_test, y_family_pred_test)
 
