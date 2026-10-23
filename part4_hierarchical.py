@@ -202,10 +202,6 @@ if __name__ == "__main__":
     y_test_family: npt.NDArray[np.object_] = df_test["Family"].to_numpy()
     y_test_species: npt.NDArray[np.object_] = df_test["Species"].to_numpy()
 
-    print("=" * 80)
-    print("PART 4: HIERARCHICAL DECISION TREE — FINAL RESULTS MATRIX SUMMARY")
-    print("=" * 80)
-
     for crit in ("gini", "entropy"):
         clf = train_hierarchical_pipeline(
             X_train, y_train_family, y_train_species, criterion=crit
@@ -245,10 +241,21 @@ if __name__ == "__main__":
         print(
             f"      Hierarchical Router vs Flat Fam  : {m['a_router_test'] - flat_derived_family_test:+6.2f}%"
         )
+
+        print("\n  --> Router Confusion Matrix (Test Set):")
+        print("      Rows = True Family, Columns = Predicted Family")
+        print("      Labels:", m["unique_families"])
+        print(m["router_cm"])
+
+        print("\n  --> Species Confusion Matrix (Test Set):")
+        print("      Rows = True Species, Columns = Predicted Species")
+        print("      Labels:", m["unique_species"])
+        print(m["species_cm"])
+
         print("\n  --> Table 3 Supplementary Failure Metrics:")
         print(f"      Router Accuracy (A_router)       : {m['a_router_test']:6.2f}%")
         print(f"      Oracle Accuracy (A_oracle)       : {m['a_oracle_test']:6.2f}%")
         print(f"      Failure Mode A [p_A] (Right/Wrong): {m['p_a']:6.2f}%")
         print(f"      Failure Mode B [p_B] (Router Wrong): {m['p_b']:6.2f}%")
         print(f"      Identity Check (A_ov == A_rt - pA): |diff| = {m['abs_diff']:.2e}")
-    print("=" * 80)
+        print("-" * 80)

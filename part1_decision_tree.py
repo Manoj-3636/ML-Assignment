@@ -343,7 +343,7 @@ class DecisionTree:
             X: Feature matrix for the samples to predict.
 
         Returns:
-            Predicted class labels.
+            Predicted class labels (vector).
         """
         X = np.asarray(X)
 
