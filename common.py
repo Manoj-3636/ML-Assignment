@@ -1,7 +1,4 @@
-
 from pathlib import Path
-from graphviz import Digraph
-
 import numpy as np
 import pandas as pd
 
@@ -79,43 +76,6 @@ class TreeNode:
         self.right = None
         self.threshold = threshold
         self.leaf = leaf
-
-    def visualize(self, feature_labels: list[str]):
-        g = Digraph(format='svg')
-        node_idx = 0
-
-        def _constructGraph(root):
-            nonlocal node_idx
-
-            curr_label = str(node_idx)
-            node_idx += 1
-
-            display_name = (
-                str(root.label)
-                if root.leaf
-                else feature_labels[root.label]
-            )
-
-            g.node(curr_label, display_name)
-
-            if root.left is not None:
-                g.edge(
-                    curr_label,
-                    _constructGraph(root.left),
-                    label=f"<= {root.threshold:.4f}",
-                )
-
-            if root.right is not None:
-                g.edge(
-                    curr_label,
-                    _constructGraph(root.right),
-                    label=f"> {root.threshold:.4f}",
-                )
-
-            return curr_label
-
-        _constructGraph(self)
-        return g
 
 
 if __name__ == "__main__":
