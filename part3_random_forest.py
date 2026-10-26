@@ -82,24 +82,27 @@ if __name__ == "__main__":
     # For 22 features, floor(sqrt(22)) = 4 features per split.
     max_features = int(np.sqrt(X_train.shape[1]))
 
-    forest = RandomForestClassifier(
-        n_estimators=50,
-        criterion="gini",
-        max_features=max_features,
-        max_depth=None,
-        min_samples_split=2,
-        random_state=42,
-    )
+    for crit in ["gini","entropy"]:
 
-    print("Random Forest")
-    print(f"Number of trees: {forest.n_estimators}")
-    print(f"Features considered per split: {max_features}")
-    print(f"Criterion: {forest.criterion}")
+        print("=" * 30 + crit + "="* 30)
+        forest = RandomForestClassifier(
+            n_estimators=50,
+            criterion=crit,
+            max_features=max_features,
+            max_depth=None,
+            min_samples_split=2,
+            random_state=42,
+        )
 
-    forest.fit(X_train, y_train)
-    evaluate_model(
-        "Random Forest", forest,
-        X_train, y_train, X_test, y_test,
-        species_to_family,
-    )
-    print(f"Trees trained: {len(forest.trees)}")
+        print("Random Forest")
+        print(f"Number of trees: {forest.n_estimators}")
+        print(f"Features considered per split: {max_features}")
+        print(f"Criterion: {forest.criterion}")
+
+        forest.fit(X_train, y_train)
+        evaluate_model(
+            "Random Forest", forest,
+            X_train, y_train, X_test, y_test,
+            species_to_family,
+        )
+        print(f"Trees trained: {len(forest.trees)}")
