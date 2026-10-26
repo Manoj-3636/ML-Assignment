@@ -159,7 +159,6 @@ ML-Assignment/
 - Python 3.12 or later.
 - NumPy.
 - pandas.
-- Graphviz Python package for the tree visualisation utility.
 - Matplotlib for optional plots.
 
 The project metadata also includes development tools such as Ruff and mypy.
@@ -179,10 +178,11 @@ git clone https://github.com/Manoj-3636/ML-Assignment.git
 cd ML-Assignment
 ```
 
-Create the project environment and install the dependencies declared in `pyproject.toml` and `uv.lock`:
+Create the project environment and install the required packages:
 
 ```bash
-uv sync
+uv venv
+uv pip install numpy pandas matplotlib
 ```
 
 ### Option 2: Using pip
@@ -208,10 +208,9 @@ On Windows PowerShell:
 Install the required packages:
 
 ```bash
-python -m pip install numpy pandas matplotlib graphviz
+python -m pip install numpy pandas matplotlib
 ```
 
-If tree visualisation is needed, install the Graphviz system application as well as its Python package.
 
 ## Running the Experiments
 
