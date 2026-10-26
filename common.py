@@ -41,10 +41,10 @@ def _stratified_split(labels, test_frac=0.2, seed=42):
     return train, test
 
 
-def get_species_split():
+def get_df_split():
     """
-    Get the train test splits where X is the 22 features and Y is only the species column
-    :return: (x_train,y_train,x_test,y_test)
+    Get the train test splits of the whole dataset
+    :return: (df_train,df_test)
     """
     if not ensure_dataset():
         raise FileNotFoundError(
@@ -54,19 +54,22 @@ def get_species_split():
 
     df = pd.read_csv(DATASET_PATH)
 
-    x = df.iloc[:, 0:22].to_numpy()
     y = df["Species"].to_numpy()
 
     train_idx, test_idx = _stratified_split(y)
 
-    x_train, x_test = x[train_idx], x[test_idx]
-    y_train, y_test = y[train_idx], y[test_idx]
 
-    print("Training shape:", x_train.shape)
-    print("Test shape:", x_test.shape)
+    return df.iloc[train_idx],df.iloc[test_idx]
 
-    return x_train, y_train, x_test, y_test
 
+def compute_accuracy(y_true: np.ndarray, y_pred: np.ndarray) -> float:
+    """
+    Compute classification accuracy as a percentage (0.0 to 100.0)
+    :param y_true: 1D array of ground truth labels
+    :param y_pred: 1D array of predicted labels
+    :return: accuracy percentage
+    """
+    return float(np.mean(y_true == y_pred) * 100.0)
 
 
 class TreeNode:
@@ -116,4 +119,6 @@ class TreeNode:
 
 
 if __name__ == "__main__":
-    get_species_split()
+    train_df,test_df = get_df_split()
+    print(train_df.shape)
+    print(test_df.shape)
