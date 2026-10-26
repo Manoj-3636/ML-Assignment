@@ -1,4 +1,4 @@
-nstallation
+Installation
 
 Option 1: Using uv (recommended)
 
