@@ -14,7 +14,6 @@ __pycache__/
 Frogs_MFCCs.csv
 *.csv
 *.zip
-Readme.txt
 
 #visualization files
 *.svg
