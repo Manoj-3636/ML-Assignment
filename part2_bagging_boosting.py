@@ -1,7 +1,5 @@
-from common import TreeNode, get_species_split, _stratified_split, DATASET_PATH
 from part1_decision_tree import DecisionTree
 import numpy as np
-import pandas as pd
 
 
 def majority_vote(predictions, classes):
