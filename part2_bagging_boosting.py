@@ -1,4 +1,5 @@
 from part1_decision_tree import DecisionTree
+from common import get_df_split, compute_accuracy
 import numpy as np
 
 
@@ -143,31 +144,6 @@ class AdaBoostSAMME:
 
         return self.classes_[np.argmax(scores, axis=1)]
 
-# Species to Family mapping
-def get_species_family_mapping():
-    df = pd.read_csv(DATASET_PATH)
-
-    # Load the species and family labels.
-    species = df["Species"].to_numpy()
-    family = df["Family"].to_numpy()
-
-    # Use training rows only
-    train_idx, _ = _stratified_split(species)
-
-    mapping = {}
-
-    # For each unique species, find its corresponding family and store it in a dictionary.
-    for s in np.unique(species[train_idx]):
-        matching_families = family[train_idx][species[train_idx] == s]
-        mapping[s] = matching_families[0]
-
-    return mapping
-
-# Evaluation
-def accuracy(y_true, y_pred):
-    return np.mean(y_true == y_pred)
-
-
 def evaluate_model(
     name, model, X_train, y_train,
     X_test, y_test, species_to_family
@@ -176,8 +152,8 @@ def evaluate_model(
     test_pred = model.predict(X_test)
 
     print(f"\n{name}")
-    print(f"Training species accuracy: {accuracy(y_train, train_pred):.4f}")
-    print(f"Testing species accuracy:  {accuracy(y_test, test_pred):.4f}")
+    print(f"Training species accuracy: {compute_accuracy(y_train, train_pred):.2f}%")
+    print(f"Testing species accuracy:  {compute_accuracy(y_test, test_pred):.2f}%")
 
     # Convert species predictions into family predictions
     true_family = np.array([
@@ -190,14 +166,25 @@ def evaluate_model(
 
     print(
         f"Testing family accuracy:   "
-        f"{accuracy(true_family, predicted_family):.4f}"
+        f"{compute_accuracy(true_family, predicted_family):.2f}%"
     )
 
 # Main
 
 if __name__ == "__main__":
-    X_train, y_train, X_test, y_test = get_species_split()
-    species_to_family = get_species_family_mapping()
+    # Use the shared data interface, just like Part 1.
+    df_train, df_test = get_df_split()
+
+    X_train = df_train.iloc[:, 0:22].to_numpy()
+    X_test = df_test.iloc[:, 0:22].to_numpy()
+
+    y_train = df_train["Species"].to_numpy()
+    y_test = df_test["Species"].to_numpy()
+
+    # Build the species-to-family mapping from training data only.
+    species_to_family = dict(
+        zip(df_train["Species"], df_train["Family"])
+    )
 
     for criterion in ["gini", "entropy"]: # for each criterion
 
@@ -246,7 +233,7 @@ if __name__ == "__main__":
 
         print(
             f"AdaBoost stumps ({criterion}) test accuracy: "
-            f"{accuracy(y_test, stumps.predict(X_test)):.4f}"
+            f"{compute_accuracy(y_test, stumps.predict(X_test)):.2f}%"
         )
 
         """
