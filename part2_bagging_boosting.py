@@ -1,4 +1,5 @@
 from part1_decision_tree import DecisionTree
+from common import get_df_split, compute_accuracy
 import numpy as np
 
 
@@ -142,3 +143,102 @@ class AdaBoostSAMME:
             scores[rows, encoded] += alpha
 
         return self.classes_[np.argmax(scores, axis=1)]
+
+def evaluate_model(
+    name, model, X_train, y_train,
+    X_test, y_test, species_to_family
+):
+    train_pred = model.predict(X_train)
+    test_pred = model.predict(X_test)
+
+    print(f"\n{name}")
+    print(f"Training species accuracy: {compute_accuracy(y_train, train_pred):.2f}%")
+    print(f"Testing species accuracy:  {compute_accuracy(y_test, test_pred):.2f}%")
+
+    # Convert species predictions into family predictions
+    true_family = np.array([
+        species_to_family[s] for s in y_test
+    ])
+
+    predicted_family = np.array([
+        species_to_family[s] for s in test_pred
+    ])
+
+    print(
+        f"Testing family accuracy:   "
+        f"{compute_accuracy(true_family, predicted_family):.2f}%"
+    )
+
+# Main
+
+if __name__ == "__main__":
+    # Use the shared data interface, just like Part 1.
+    df_train, df_test = get_df_split()
+
+    X_train = df_train.iloc[:, 0:22].to_numpy()
+    X_test = df_test.iloc[:, 0:22].to_numpy()
+
+    y_train = df_train["Species"].to_numpy()
+    y_test = df_test["Species"].to_numpy()
+
+    # Build the species-to-family mapping from training data only.
+    species_to_family = dict(
+        zip(df_train["Species"], df_train["Family"])
+    )
+
+    for criterion in ["gini", "entropy"]: # for each criterion
+
+        # Bagging: 25 unrestricted trees
+        bagging = BaggingClassifier(
+            n_estimators=25,
+            criterion=criterion
+        )
+        bagging.fit(X_train, y_train)
+
+        evaluate_model(
+            f"Bagging ({criterion})",
+            bagging,
+            X_train, y_train,
+            X_test, y_test,
+            species_to_family
+        )
+
+        print(f"Bagging trees trained: {len(bagging.trees)}")
+
+        # AdaBoost: depth-3 trees, up to 50 rounds
+        boosting = AdaBoostSAMME(
+            n_estimators=50,
+            criterion=criterion,
+            max_depth=3
+        )
+        boosting.fit(X_train, y_train)
+
+        evaluate_model(
+            f"AdaBoost ({criterion})",
+            boosting,
+            X_train, y_train,
+            X_test, y_test,
+            species_to_family
+        )
+
+        print(f"AdaBoost rounds completed: {len(boosting.estimators_)}")
+
+        # Extra experiment: decision stumps (max_depth=1)
+        stumps = AdaBoostSAMME(
+            n_estimators=50,
+            criterion=criterion,
+            max_depth=1
+        )
+        stumps.fit(X_train, y_train)
+
+        print(
+            f"AdaBoost stumps ({criterion}) test accuracy: "
+            f"{compute_accuracy(y_test, stumps.predict(X_test)):.2f}%"
+        )
+
+        """
+        A decision stump has max_depth = 1, meaning it makes only one split
+        and can create at most two leaf nodes. Therefore, it has limited
+        ability to distinguish between 10 different species with
+        complex decision boundaries.
+        """
